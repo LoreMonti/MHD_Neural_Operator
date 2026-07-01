@@ -3,7 +3,7 @@ torch>=2.2
 neuraloperator>=0.3.0
 
 # Numerics & data
-numpy>=1.26
+numpy>=1.26,<2.0     # torch 2.2 is built against NumPy 1.x; NumPy 2.x degrades FFT precision
 scipy>=1.11
 h5py>=3.10            # trajectory storage
 einops>=0.7           # tensor reshaping for multi-channel fields
