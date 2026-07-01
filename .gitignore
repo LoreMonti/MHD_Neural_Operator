@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+
+# Data & model artifacts (large, regenerable)
+data/raw/
+data/processed/
+*.h5
+*.hdf5
+*.npz
+checkpoints/
+*.pt
+*.ckpt
+runs/
+wandb/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,40 @@
+# Baseline experiment configuration for the magnetized Kelvin-Helmholtz dataset.
+# Values are the Phase-1 starting point from ROADMAP.md; revisit after first results.
+
+solver:
+  resolution: 128          # grid is resolution x resolution
+  box_size: 6.283185307    # 2*pi periodic box
+  dealias: 0.6667          # 2/3 rule
+  scheme: rk3              # time integrator (placeholder)
+  cfl: 0.4
+
+physics:
+  M_A_range: [0.5, 6.0]    # Alfvenic Mach number sweep
+  M_A_test_hole: [1.5, 2.5]  # excluded from training, used only for threshold test
+  Re_range: [500, 5000]    # Reynolds number
+  Pm: 1.0                  # magnetic Prandtl number -> S = Re
+  shear_thickness: 0.05    # width of the tanh shear layer
+  perturbation_amp: 1.0e-3
+
+dataset:
+  n_simulations: 250
+  sampling: latin_hypercube
+  snapshots_per_run: 80
+  t_end: 20.0              # in units of shear time (placeholder)
+  fields: [omega, A]
+  dtype: float32
+  out_dir: data/raw
+
+model:
+  name: fno
+  modes: 32                # retained Fourier modes per dimension
+  width: 64
+  n_layers: 4
+  condition_on: [M_A, Re]
+
+training:
+  batch_size: 16
+  lr: 1.0e-3
+  epochs: 200
+  rollout_steps: 1         # increase for multi-step training
+  seed: 0

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mhd-fno"
+version = "0.0.1"
+description = "Fourier Neural Operator surrogate for 2D incompressible MHD instabilities (Kelvin-Helmholtz)."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Lorenzo Monti", email = "monti.lorenzo00@gmail.com" }]
+license = { text = "MIT" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

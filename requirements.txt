@@ -1,0 +1,23 @@
+# Core ML
+torch>=2.2
+neuraloperator>=0.3.0
+
+# Numerics & data
+numpy>=1.26
+scipy>=1.11
+h5py>=3.10            # trajectory storage
+einops>=0.7           # tensor reshaping for multi-channel fields
+
+# Config & experiment tracking
+pyyaml>=6.0
+tqdm>=4.66
+
+# Plotting & analysis
+matplotlib>=3.8
+
+# Dev / testing
+pytest>=8.0
+
+# Optional cross-check solver (heavy: FFTW + MPI). Install separately if needed:
+#   conda install -c conda-forge dedalus
+# dedalus>=3.0
