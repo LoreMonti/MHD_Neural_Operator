@@ -66,6 +66,7 @@ def kelvin_helmholtz_state(
     shear_thickness: float | None = None,
     perturbation_amp: float = 1.0e-3,
     n_modes: int = 4,
+    single_mode: int | None = None,
     seed: int = 0,
     rho: float = 1.0,
     mu0: float = 1.0,
@@ -86,7 +87,11 @@ def kelvin_helmholtz_state(
     perturbation_amp : float
         Amplitude of the seed velocity perturbation, as a fraction of delta_u.
     n_modes : int
-        Number of low-wavenumber x-modes in the seed perturbation.
+        Number of low-wavenumber x-modes in the seed perturbation (random-phase).
+    single_mode : int, optional
+        If given, seed exactly one x-mode of this wavenumber with unit amplitude and
+        zero phase (deterministic). Used for clean linear growth-rate measurements;
+        overrides `n_modes` / `seed` for the perturbation shape.
     seed : int
         RNG seed for reproducible perturbations.
     rho, mu0 : float
@@ -107,13 +112,17 @@ def kelvin_helmholtz_state(
     )
 
     # --- seed perturbation in v_y, localized near the two interfaces -----------------
-    gen = torch.Generator(device="cpu").manual_seed(seed)
     envelope = torch.exp(-((yy - y1) / a_th) ** 2) + torch.exp(-((yy - y2) / a_th) ** 2)
     v_y = torch.zeros_like(v_x)
-    for m in range(1, n_modes + 1):
-        amp_m = torch.randn(1, generator=gen).item()
-        phase_m = 2 * math.pi * torch.rand(1, generator=gen).item()
-        v_y = v_y + amp_m * torch.sin(2 * math.pi * m * xx / length + phase_m)
+    if single_mode is not None:
+        # Deterministic single-wavenumber seed for clean growth-rate measurements.
+        v_y = torch.sin(2 * math.pi * single_mode * xx / length)
+    else:
+        gen = torch.Generator(device="cpu").manual_seed(seed)
+        for m in range(1, n_modes + 1):
+            amp_m = torch.randn(1, generator=gen).item()
+            phase_m = 2 * math.pi * torch.rand(1, generator=gen).item()
+            v_y = v_y + amp_m * torch.sin(2 * math.pi * m * xx / length + phase_m)
     v_y = v_y * envelope
     # Normalize so the peak perturbation is perturbation_amp * delta_u.
     peak = v_y.abs().max()
