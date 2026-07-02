@@ -69,9 +69,15 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 - Store $(\omega, A)$ per snapshot + metadata (parameters, seed). Reconstruct
   $(\mathbf{v}, \mathbf{B})$ for diagnostics.
 - Rough storage: $128^2 \times 2 \times \sim 80 \times \sim 250$ in `float32` $\approx$ 6–7 GB.
-- [ ] Working, validated solver (reproduces KH linear growth)
-- [ ] Dataset generation pipeline + storage
+- [x] Working, validated solver (reproduces KH linear growth; threshold at $M_A\approx2.5$)
+- [x] Dataset generation pipeline + storage (280 runs, 2.8 GB, in `data/raw/`)
 - [x] Field representation → $(\omega, A)$ (primitives reconstructed for diagnostics)
+
+> **Dataset generated (280 runs: 250 train + 30 test, $128^2$, 81 frames each).**
+> Physics check: $E_y$ decays for $M_A \lesssim 2$ and grows above, threshold near the
+> theory. Note the threshold also depends on $\mathrm{Re}$: low-Lundquist runs (high
+> resistivity, field slips) stay unstable below the ideal $M_A\approx2$ — which is why
+> the FNO is conditioned on both $M_A$ and $\mathrm{Re}$.
 
 ### Phase 2 — Model
 - FNO mapping $\text{field}(t) \to \text{field}(t+\Delta t)$.
