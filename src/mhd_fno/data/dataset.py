@@ -1,0 +1,77 @@
+"""PyTorch Dataset over the generated trajectories.
+
+The FNO learns a one-step map field(t) -> field(t+dt). So from each trajectory of T
+snapshots we make T-1 training pairs: (snapshot i) -> (snapshot i+1). A "field" here is
+the 2-channel stack (omega, a).
+
+Each item is:
+    input  : (2, N, N)  = [omega(t),   a(t)]
+    target : (2, N, N)  = [omega(t+dt), a(t+dt)]
+    params : (2,)       = [M_A, Re]      (for conditioning the operator)
+
+HDF5 files are opened lazily and cached per Dataset instance. For multi-worker loading
+use a fresh Dataset per worker (or num_workers=0); handles are not shared across procs.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import h5py
+import torch
+from torch.utils.data import Dataset
+
+
+class MHDTrajectoryDataset(Dataset):
+    def __init__(self, root: str | Path, split: str | None = None):
+        """
+        Parameters
+        ----------
+        root : directory containing the HDF5 files and manifest.json.
+        split : "train", "test", or None (all).
+        """
+        self.root = Path(root)
+        with open(self.root / "manifest.json") as f:
+            manifest = json.load(f)
+        self.entries = [e for e in manifest if split is None or e["split"] == split]
+
+        # Build a flat index of (entry_idx, t) pairs and read light metadata up front.
+        self._handles: dict[str, h5py.File] = {}
+        self.index: list[tuple[int, int]] = []
+        self.params: list[tuple[float, float]] = []
+        for ei, e in enumerate(self.entries):
+            with h5py.File(self.root / e["file"], "r") as f:
+                n_t = f["omega"].shape[0]
+                m_a, re = float(f.attrs["M_A"]), float(f.attrs["Re"])
+            for t in range(n_t - 1):
+                self.index.append((ei, t))
+                self.params.append((m_a, re))
+
+    def _file(self, entry_idx: int) -> h5py.File:
+        path = str(self.root / self.entries[entry_idx]["file"])
+        h = self._handles.get(path)
+        if h is None:
+            h = h5py.File(path, "r")
+            self._handles[path] = h
+        return h
+
+    def __len__(self) -> int:
+        return len(self.index)
+
+    def __getitem__(self, i: int):
+        entry_idx, t = self.index[i]
+        f = self._file(entry_idx)
+        omega = torch.from_numpy(f["omega"][t : t + 2])   # (2, N, N): times t and t+1
+        a = torch.from_numpy(f["a"][t : t + 2])
+        x = torch.stack([omega[0], a[0]], dim=0)          # (2, N, N)
+        y = torch.stack([omega[1], a[1]], dim=0)
+        params = torch.tensor(self.params[i], dtype=torch.float32)
+        return {"input": x, "target": y, "params": params}
+
+    def __del__(self):
+        for h in getattr(self, "_handles", {}).values():
+            try:
+                h.close()
+            except Exception:
+                pass

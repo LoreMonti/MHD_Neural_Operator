@@ -144,18 +144,31 @@ class MHD2DSolver:
         cfl: float = 0.4,
         save_every: int = 10,
         record_fields: bool = False,
+        n_snapshots: int | None = None,
     ) -> dict:
         """Integrate from `state` to time `t_end`.
 
         Returns a dict with time series of energies (always) and, if `record_fields`,
-        snapshots of (omega, a). Snapshots/diagnostics are recorded every `save_every`
-        steps.
+        snapshots of (omega, a).
+
+        Snapshot timing:
+          - if `n_snapshots` is given, record at `n_snapshots` **uniform** times in
+            [0, t_end] (the time step is capped so we land exactly on them). This gives
+            the fixed-delta-t series the FNO needs.
+          - otherwise, record every `save_every` integration steps.
         """
         omega, a = state.omega.clone(), state.a.clone()
         t = 0.0
         step_idx = 0
         times, e_kin, e_mag, e_y = [], [], [], []
         omega_snaps, a_snaps, snap_times = [], [], []
+
+        # Uniform save schedule (exclude t=0, which we record explicitly first).
+        if n_snapshots is not None:
+            save_times = [t_end * (i + 1) / n_snapshots for i in range(n_snapshots)]
+        else:
+            save_times = None
+        next_save = 0
 
         def record():
             en = self.energies(omega, a)
@@ -169,13 +182,20 @@ class MHD2DSolver:
                 snap_times.append(t)
 
         record()
-        while t < t_end:
+        while t < t_end - 1e-12:
             dt = self.compute_dt(omega, a, cfl=cfl)
             dt = min(dt, t_end - t)
+            if save_times is not None:
+                # Cap the step so we land exactly on the next uniform save time.
+                dt = min(dt, save_times[next_save] - t)
             omega, a = self.step(omega, a, dt)
             t += dt
             step_idx += 1
-            if step_idx % save_every == 0:
+            if save_times is not None:
+                if next_save < len(save_times) and t >= save_times[next_save] - 1e-12:
+                    record()
+                    next_save += 1
+            elif step_idx % save_every == 0:
                 record()
 
         out = {
