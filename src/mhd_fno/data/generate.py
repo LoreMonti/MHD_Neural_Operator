@@ -22,6 +22,7 @@ from pathlib import Path
 
 import h5py
 import torch
+from tqdm import tqdm
 
 from ..solver.spectral import SpectralGrid
 from ..solver.initial import kelvin_helmholtz_state
@@ -101,15 +102,19 @@ def generate_dataset(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     manifest = []
-    iterator = enumerate(specs)
-    for i, spec in iterator:
+    n_done = 0
+    bar = tqdm(specs, disable=not progress, unit="run", desc="Generating")
+    for spec in bar:
         entry = run_one(
             spec, out_dir, t_end=t_end, n_snapshots=n_snapshots, overwrite=overwrite, **run_kwargs
         )
         manifest.append(entry)
-        if progress:
-            tag = "skip" if entry["skipped"] else f"{entry.get('wall_seconds', 0):.1f}s"
-            print(f"[{i + 1}/{len(specs)}] {spec.run_id}  M_A={spec.M_A:.2f} Re={spec.Re:.0f}  {tag}")
+        if not entry["skipped"]:
+            n_done += 1
+        tag = "skip" if entry["skipped"] else f"{entry.get('wall_seconds', 0):.1f}s"
+        bar.set_postfix_str(
+            f"{spec.run_id} M_A={spec.M_A:.2f} Re={spec.Re:.0f} ({tag}) | new={n_done}"
+        )
 
     with open(out_dir / "manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
