@@ -24,7 +24,8 @@ from torch.utils.data import Dataset
 
 
 class MHDTrajectoryDataset(Dataset):
-    def __init__(self, root: str | Path, split: str | None = None, pair_stride: int = 1):
+    def __init__(self, root: str | Path, split: str | None = None, pair_stride: int = 1,
+                 include_runs: set[str] | None = None):
         """
         Parameters
         ----------
@@ -32,11 +33,17 @@ class MHDTrajectoryDataset(Dataset):
         split : "train", "test", or None (all).
         pair_stride : keep every k-th (run, time) pair. >1 shrinks the dataset for
             faster CPU training while still covering all runs and time ranges.
+        include_runs : if given, keep only runs whose run_id is in this set (used to
+            carve a validation set out of unseen training runs).
         """
         self.root = Path(root)
         with open(self.root / "manifest.json") as f:
             manifest = json.load(f)
-        self.entries = [e for e in manifest if split is None or e["split"] == split]
+        self.entries = [
+            e for e in manifest
+            if (split is None or e["split"] == split)
+            and (include_runs is None or e["run_id"] in include_runs)
+        ]
 
         # Build a flat index of (entry_idx, t) pairs and read light metadata up front.
         self._handles: dict[str, h5py.File] = {}
