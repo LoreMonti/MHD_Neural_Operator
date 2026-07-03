@@ -39,7 +39,7 @@ def run_one(
     Pm: float = 1.0,
     shear_thickness: float | None = None,
     perturbation_amp: float = 1e-3,
-    cfl: float = 0.4,
+    cfl: float = 0.25,
     overwrite: bool = False,
 ) -> dict:
     """Run a single simulation and write its HDF5 file. Returns the manifest entry."""

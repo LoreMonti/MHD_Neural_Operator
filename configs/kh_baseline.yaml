@@ -13,7 +13,7 @@ physics:
   M_A_test_hole: [1.5, 2.5]  # excluded from training, used only for threshold test
   Re_range: [500, 5000]    # Reynolds number
   Pm: 1.0                  # magnetic Prandtl number -> S = Re
-  shear_thickness: 0.05    # width of the tanh shear layer
+  shear_thickness: 0.2     # absolute tanh half-width (~4 cells at 128^2; well resolved)
   perturbation_amp: 1.0e-3
 
 dataset:

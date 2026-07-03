@@ -54,6 +54,7 @@ def main() -> None:
         Pm=phys["Pm"],
         shear_thickness=phys["shear_thickness"],
         perturbation_amp=phys["perturbation_amp"],
+        cfl=solver["cfl"],
         overwrite=args.overwrite,
     )
 
