@@ -21,7 +21,8 @@ create.
 
 Time stepping is classic explicit RK4 with a CFL-limited step. Viscosity nu and
 resistivity eta are the linear diffusion terms; they are included in the RHS directly
-(explicit), which is stable here because the advective CFL is the tighter limit.
+(explicit), so the time step is capped by both an advective and a diffusive stability
+limit (see compute_dt).
 """
 
 from __future__ import annotations
@@ -112,8 +113,17 @@ class MHD2DSolver:
         a_new = a + (dt / 6.0) * (k1a + 2 * k2a + 2 * k3a + k4a)
         return omega_new, a_new
 
-    def compute_dt(self, omega: torch.Tensor, a: torch.Tensor, cfl: float = 0.4) -> float:
-        """CFL-limited time step from the fastest signal speed (flow + Alfven)."""
+    def compute_dt(self, omega: torch.Tensor, a: torch.Tensor, cfl: float = 0.25,
+                   diff_safety: float = 0.15) -> float:
+        """CFL-limited time step.
+
+        Two explicit-stability limits, take the smaller:
+          - advective/Alfven: dt < cfl * dx / max_signal_speed
+          - diffusive: the explicit viscous/resistive term is stiff. For RK4 the
+            largest stable step is ~0.28 * dx^2 / diffusivity (the diffusive eigenvalue
+            reaches ~nu*(pi/dx)^2); we use diff_safety=0.15 well below that. A too-loose
+            diffusive limit was blowing up high-diffusivity (low-Re) runs.
+        """
         g = self.grid
         v_x, v_y, b_x, b_y, _ = self.fields(omega, a)
         dx = g.length / g.n
@@ -121,9 +131,8 @@ class MHD2DSolver:
         max_alfven = torch.sqrt(b_x**2 + b_y**2).max()
         speed = float(max(max_speed, max_alfven)) + 1e-12
         dt_adv = cfl * dx / speed
-        # diffusive limit (usually looser than advective here)
         diff = max(self.nu, self.eta) + 1e-12
-        dt_diff = cfl * dx * dx / diff
+        dt_diff = diff_safety * dx * dx / diff
         return min(dt_adv, dt_diff)
 
     # --- diagnostics ----------------------------------------------------------------
@@ -141,7 +150,7 @@ class MHD2DSolver:
         self,
         state: KHState,
         t_end: float,
-        cfl: float = 0.4,
+        cfl: float = 0.25,
         save_every: int = 10,
         record_fields: bool = False,
         n_snapshots: int | None = None,

@@ -6,7 +6,7 @@ solver:
   box_size: 6.283185307    # 2*pi periodic box
   dealias: 0.6667          # 2/3 rule
   scheme: rk3              # time integrator (placeholder)
-  cfl: 0.4
+  cfl: 0.25
 
 physics:
   M_A_range: [0.5, 6.0]    # Alfvenic Mach number sweep

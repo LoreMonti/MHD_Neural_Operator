@@ -24,12 +24,14 @@ from torch.utils.data import Dataset
 
 
 class MHDTrajectoryDataset(Dataset):
-    def __init__(self, root: str | Path, split: str | None = None):
+    def __init__(self, root: str | Path, split: str | None = None, pair_stride: int = 1):
         """
         Parameters
         ----------
         root : directory containing the HDF5 files and manifest.json.
         split : "train", "test", or None (all).
+        pair_stride : keep every k-th (run, time) pair. >1 shrinks the dataset for
+            faster CPU training while still covering all runs and time ranges.
         """
         self.root = Path(root)
         with open(self.root / "manifest.json") as f:
@@ -47,6 +49,10 @@ class MHDTrajectoryDataset(Dataset):
             for t in range(n_t - 1):
                 self.index.append((ei, t))
                 self.params.append((m_a, re))
+
+        if pair_stride > 1:
+            self.index = self.index[::pair_stride]
+            self.params = self.params[::pair_stride]
 
     def _file(self, entry_idx: int) -> h5py.File:
         path = str(self.root / self.entries[entry_idx]["file"])
