@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from ..data.normalization import Normalizer
-from .losses import relative_l2
+from .losses import relative_l2, fluctuation_relative_l2
 
 
 class Trainer:
@@ -27,11 +27,13 @@ class Trainer:
         lr: float = 1e-3,
         weight_decay: float = 1e-5,
         train_resolution: int | None = None,
+        fluct_weight: float = 0.0,
     ):
         self.model = model.to(device)
         self.norm = normalizer
         self.device = device
         self.train_resolution = train_resolution
+        self.fluct_weight = fluct_weight   # weight of the perturbation-only loss term
         self.opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         self.history: dict[str, list] = {"train": [], "val": []}
         self.best_val = float("inf")
@@ -54,6 +56,8 @@ class Trainer:
             with torch.set_grad_enabled(train):
                 pred = self.model(x, p)
                 loss = relative_l2(pred, y)
+                if self.fluct_weight > 0:
+                    loss = loss + self.fluct_weight * fluctuation_relative_l2(pred, y)
                 if train:
                     self.opt.zero_grad()
                     loss.backward()

@@ -45,6 +45,8 @@ def main() -> None:
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--epochs", type=int, default=40)
     p.add_argument("--lr", type=float, default=1e-3)
+    p.add_argument("--fluct-weight", type=float, default=1.0,
+                   help="Weight of the perturbation-only loss term (Phase 3). 0 = full-field only.")
     p.add_argument("--val-frac", type=float, default=0.1)
     p.add_argument("--seed", type=int, default=0)
     args = p.parse_args()
@@ -79,7 +81,9 @@ def main() -> None:
     model = FNO2d(modes=args.modes, width=args.width, n_layers=args.n_layers)
     n_par = sum(t.numel() for t in model.parameters())
     print(f"model: {n_par/1e6:.2f}M params, training at {args.train_res}^2")
-    trainer = Trainer(model, norm, device=device, lr=args.lr, train_resolution=args.train_res)
+    trainer = Trainer(model, norm, device=device, lr=args.lr, train_resolution=args.train_res,
+                      fluct_weight=args.fluct_weight)
+    print(f"fluctuation-loss weight: {args.fluct_weight}")
     trainer.fit(train_loader, val_loader, epochs=args.epochs, ckpt_path=out_dir / "fno_best.pt")
 
     # --- loss curve ---
