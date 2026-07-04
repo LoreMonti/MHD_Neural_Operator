@@ -30,6 +30,7 @@ class Trainer:
         train_resolution: int | None = None,
         fluct_weight: float = 0.0,
         progress: bool = True,
+        rollout_steps: int = 1,
     ):
         self.model = model.to(device)
         self.norm = normalizer
@@ -37,6 +38,7 @@ class Trainer:
         self.train_resolution = train_resolution
         self.fluct_weight = fluct_weight   # weight of the perturbation-only loss term
         self.progress = progress           # show a per-epoch tqdm batch progress bar
+        self.rollout_steps = rollout_steps # >1: unroll the model and supervise each step
         self.opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
         self.history: dict[str, list] = {"train": [], "val": []}
         self.best_val = float("inf")
@@ -51,23 +53,59 @@ class Trainer:
             y = F.interpolate(y, size=(n, n), mode="bilinear", align_corners=False)
         return self.norm.normalize_fields(x), self.norm.normalize_fields(y), self.norm.normalize_params(p)
 
+    def _step_loss(self, pred, target):
+        loss = relative_l2(pred, target)
+        if self.fluct_weight > 0:
+            loss = loss + self.fluct_weight * fluctuation_relative_l2(pred, target)
+        return loss
+
+    def _prep_window(self, batch):
+        """Normalize a window batch (B, K+1, 2, H, W) -> normalized window + params."""
+        w = batch["window"].to(self.device).float()
+        p = batch["params"].to(self.device).float()
+        b, k1, c, h, _ = w.shape
+        if self.train_resolution is not None and h != self.train_resolution:
+            n = self.train_resolution
+            w = F.interpolate(w.reshape(b * k1, c, h, h), size=(n, n),
+                              mode="bilinear", align_corners=False).reshape(b, k1, c, n, n)
+        wn = self.norm.normalize_fields(w.reshape(b * k1, c, w.shape[-1], w.shape[-1]))
+        wn = wn.reshape(b, k1, c, w.shape[-1], w.shape[-1])
+        return wn, self.norm.normalize_params(p)
+
+    def _rollout_loss(self, wn, p):
+        """Unroll the model rollout_steps times, supervising each predicted frame.
+
+        Everything stays in normalized space: the model consumes normalized fields and
+        (via its residual) outputs the normalized next state, which is fed back in.
+        """
+        fields = wn[:, 0]
+        loss = 0.0
+        for k in range(self.rollout_steps):
+            pred = self.model(fields, p)
+            loss = loss + self._step_loss(pred, wn[:, k + 1])
+            fields = pred
+        return loss / self.rollout_steps
+
     def _run_epoch(self, loader: DataLoader, train: bool, desc: str = "") -> float:
         self.model.train(train)
         total, count = 0.0, 0
         bar = tqdm(loader, desc=desc, disable=not self.progress, leave=False, unit="batch")
         for batch in bar:
-            x, y, p = self._prep(batch)
             with torch.set_grad_enabled(train):
-                pred = self.model(x, p)
-                loss = relative_l2(pred, y)
-                if self.fluct_weight > 0:
-                    loss = loss + self.fluct_weight * fluctuation_relative_l2(pred, y)
+                if self.rollout_steps > 1:
+                    wn, p = self._prep_window(batch)
+                    loss = self._rollout_loss(wn, p)
+                    bs = wn.size(0)
+                else:
+                    x, y, p = self._prep(batch)
+                    loss = self._step_loss(self.model(x, p), y)
+                    bs = x.size(0)
                 if train:
                     self.opt.zero_grad()
                     loss.backward()
                     self.opt.step()
-            total += loss.item() * x.size(0)
-            count += x.size(0)
+            total += loss.item() * bs
+            count += bs
             bar.set_postfix_str(f"loss {total / max(count, 1):.4f}")
         return total / max(count, 1)
 

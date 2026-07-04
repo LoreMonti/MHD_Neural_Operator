@@ -47,6 +47,10 @@ def main() -> None:
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--fluct-weight", type=float, default=1.0,
                    help="Weight of the perturbation-only loss term (Phase 3). 0 = full-field only.")
+    p.add_argument("--rollout-steps", type=int, default=1,
+                   help="Multi-step training: unroll the model this many steps per sample.")
+    p.add_argument("--init-ckpt", default=None,
+                   help="Warm-start model weights from this checkpoint (fresh optimizer).")
     p.add_argument("--val-frac", type=float, default=0.1)
     p.add_argument("--seed", type=int, default=0)
     args = p.parse_args()
@@ -71,19 +75,24 @@ def main() -> None:
     # --- data ---
     norm = compute_stats(data_dir, split="train")
     norm.save(out_dir / "normalizer.json")
-    train_ds = MHDTrajectoryDataset(data_dir, split="train", pair_stride=args.pair_stride, include_runs=tr_ids)
-    val_ds = MHDTrajectoryDataset(data_dir, split="train", pair_stride=args.pair_stride, include_runs=val_ids)
+    train_ds = MHDTrajectoryDataset(data_dir, split="train", pair_stride=args.pair_stride,
+                                    include_runs=tr_ids, rollout_steps=args.rollout_steps)
+    val_ds = MHDTrajectoryDataset(data_dir, split="train", pair_stride=args.pair_stride,
+                                  include_runs=val_ids, rollout_steps=args.rollout_steps)
     print(f"train pairs: {len(train_ds)}  val pairs: {len(val_ds)}")
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=args.batch_size)
 
     # --- model & training ---
     model = FNO2d(modes=args.modes, width=args.width, n_layers=args.n_layers)
+    if args.init_ckpt:
+        model.load_state_dict(torch.load(args.init_ckpt)["model"])
+        print(f"warm-started from {args.init_ckpt}")
     n_par = sum(t.numel() for t in model.parameters())
     print(f"model: {n_par/1e6:.2f}M params, training at {args.train_res}^2")
     trainer = Trainer(model, norm, device=device, lr=args.lr, train_resolution=args.train_res,
-                      fluct_weight=args.fluct_weight)
-    print(f"fluctuation-loss weight: {args.fluct_weight}")
+                      fluct_weight=args.fluct_weight, rollout_steps=args.rollout_steps)
+    print(f"fluctuation-loss weight: {args.fluct_weight}  rollout steps: {args.rollout_steps}")
     trainer.fit(train_loader, val_loader, epochs=args.epochs, ckpt_path=out_dir / "fno_best.pt")
 
     # --- loss curve ---

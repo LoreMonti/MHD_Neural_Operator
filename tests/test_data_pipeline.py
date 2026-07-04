@@ -42,6 +42,18 @@ def test_dataloader_batches(tmp_path):
     assert batch["params"].shape == (4, 2)
 
 
+def test_rollout_window_mode(tmp_path):
+    root = _tiny_dataset(tmp_path)
+    K = 3
+    ds = MHDTrajectoryDataset(root, split="train", rollout_steps=K)
+    item = ds[0]
+    assert "window" in item and "input" not in item
+    assert item["window"].shape == (K + 1, 2, 32, 32)   # K+1 consecutive frames
+    assert item["params"].shape == (2,)
+    # 7 frames per run, window of K+1=4 -> 7-3 = 4 start positions per run, x2 runs
+    assert len(ds) == 2 * (7 - K)
+
+
 def test_restartable_skips_existing(tmp_path):
     specs = generate_sweep(n_train=1, n_test=0, resolution=32, seed=0)
     m1 = generate_dataset(specs, tmp_path, t_end=1.0, n_snapshots=4, progress=False)

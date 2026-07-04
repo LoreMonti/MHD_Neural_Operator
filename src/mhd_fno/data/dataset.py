@@ -25,7 +25,7 @@ from torch.utils.data import Dataset
 
 class MHDTrajectoryDataset(Dataset):
     def __init__(self, root: str | Path, split: str | None = None, pair_stride: int = 1,
-                 include_runs: set[str] | None = None):
+                 include_runs: set[str] | None = None, rollout_steps: int = 1):
         """
         Parameters
         ----------
@@ -35,7 +35,11 @@ class MHDTrajectoryDataset(Dataset):
             faster CPU training while still covering all runs and time ranges.
         include_runs : if given, keep only runs whose run_id is in this set (used to
             carve a validation set out of unseen training runs).
+        rollout_steps : if >1, each item is a window of (rollout_steps + 1) consecutive
+            frames for multi-step training; the item returns {"window", "params"}
+            instead of {"input", "target", "params"}.
         """
+        self.rollout_steps = rollout_steps
         self.root = Path(root)
         with open(self.root / "manifest.json") as f:
             manifest = json.load(f)
@@ -53,7 +57,7 @@ class MHDTrajectoryDataset(Dataset):
             with h5py.File(self.root / e["file"], "r") as f:
                 n_t = f["omega"].shape[0]
                 m_a, re = float(f.attrs["M_A"]), float(f.attrs["Re"])
-            for t in range(n_t - 1):
+            for t in range(n_t - self.rollout_steps):
                 self.index.append((ei, t))
                 self.params.append((m_a, re))
 
@@ -75,11 +79,17 @@ class MHDTrajectoryDataset(Dataset):
     def __getitem__(self, i: int):
         entry_idx, t = self.index[i]
         f = self._file(entry_idx)
+        params = torch.tensor(self.params[i], dtype=torch.float32)
+        if self.rollout_steps > 1:
+            k = self.rollout_steps + 1
+            omega = torch.from_numpy(f["omega"][t : t + k])      # (k, N, N)
+            a = torch.from_numpy(f["a"][t : t + k])
+            window = torch.stack([omega, a], dim=1)              # (k, 2, N, N)
+            return {"window": window, "params": params}
         omega = torch.from_numpy(f["omega"][t : t + 2])   # (2, N, N): times t and t+1
         a = torch.from_numpy(f["a"][t : t + 2])
         x = torch.stack([omega[0], a[0]], dim=0)          # (2, N, N)
         y = torch.stack([omega[1], a[1]], dim=0)
-        params = torch.tensor(self.params[i], dtype=torch.float32)
         return {"input": x, "target": y, "params": params}
 
     def __del__(self):
