@@ -30,6 +30,7 @@ from mhd_fno.data.dataset import MHDTrajectoryDataset
 from mhd_fno.data.normalization import compute_stats
 from mhd_fno.models.fno import FNO2d
 from mhd_fno.training.trainer import Trainer
+from mhd_fno.utils.device import pick_device
 
 
 def main() -> None:
@@ -52,6 +53,7 @@ def main() -> None:
     p.add_argument("--init-ckpt", default=None,
                    help="Warm-start model weights from this checkpoint (fresh optimizer).")
     p.add_argument("--val-frac", type=float, default=0.1)
+    p.add_argument("--device", default=None, help="Force a device (cuda/mps/cpu); default: auto.")
     p.add_argument("--seed", type=int, default=0)
     args = p.parse_args()
 
@@ -61,7 +63,7 @@ def main() -> None:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = pick_device(args.device)
     print(f"device: {device}")
 
     # --- split training runs into train / val (by run) ---
