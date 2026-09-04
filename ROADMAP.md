@@ -110,7 +110,7 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 > A **residual positive bias** remains: stable runs are under-damped, so the threshold is
 > not a clean zero crossing. This is a calibration limitation, not a failure to learn.
 
-### Phase 4 — Reducing the bias ✅ (partly) / extensions
+### Phase 4/5 — Reducing the bias ✅ / extensions
 - [x] Full-data, longer-rollout training on GPU (Apple MPS) to reduce the bias
 - [ ] Full-resolution ($128^2$) and larger-capacity operator
 
@@ -122,6 +122,15 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 > is $M_A \approx 2.1$ (solver $\approx 2.5$, theory $2.0$) — **the threshold is
 > recovered in a band the model never saw**. Validation loss was still falling at
 > epoch 20, so accuracy is not yet saturated.
+>
+> **Phase 5 (longer rollout).** Warm-started from Phase 4 and fine-tuned with $K=8$
+> rollout steps for 35 epochs (~2.5 h on the M5 GPU); validation loss $0.0197 \to 0.0183$.
+> The decisive gains were in the physics metrics, not the loss: bias
+> $+0.089 \to +0.034$, mean absolute error on $\gamma$ $0.089 \to 0.044$, correct
+> stability verdict $73\% \to 97\%$ (29/30 held-out runs), and the predicted threshold
+> moved $2.09 \to 2.26$ against the solver's $2.59$. Each increase of the rollout horizon
+> ($K = 4 \to 6 \to 8$) cut the bias roughly in half, which identifies the horizon as the
+> lever that matters.
 - **Kink / current-driven** → bridges to fusion / Tokamak.
 - **Magnetorotational (MRI)** → accretion disks (harder: shearing box).
 

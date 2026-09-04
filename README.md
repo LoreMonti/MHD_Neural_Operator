@@ -6,10 +6,11 @@ Kelvin–Helmholtz instability — and a rigorous test of whether it learns the 
 
 **Headline result:** trained on data that deliberately excludes the band
 $M_A \in [1.5, 2.5]$ around the magnetic stabilization threshold, the operator
-reconstructs the growth-rate curve inside that unseen band with correlation $0.92$ and
-places the threshold at $M_A \approx 2.1$ (solver: $\approx 2.5$; vortex-sheet theory:
-$2.0$). Getting there required diagnosing *why* a naive field loss makes the instability
-invisible — the central technical finding below.
+reconstructs the growth-rate curve inside that unseen band with correlation $0.92$,
+assigns the correct stability verdict (growing vs decaying) to **97%** of held-out runs,
+and places the threshold at $M_A \approx 2.3$ (solver: $\approx 2.6$; vortex-sheet
+theory: $2.0$). Getting there required diagnosing *why* a naive field loss makes the
+instability invisible — the central technical finding below.
 
 Everything here is built from scratch: the pseudo-spectral MHD solver that generates the
 ground truth, the dataset, the neural operator, and the physics diagnostics.
@@ -85,7 +86,7 @@ points (blue) avoid the grey band; test points (red) fill it.
 
 ![rollout error](notebooks/03_rollout_error.png)
 
-Rolled out autoregressively for 80 steps, the relative $L^2$ field error stays **below
+Rolled out autoregressively for 80 steps, the relative $L^2$ field error stays **around
 2%**, with no blow-up. This rollout is at $128^2$ using weights trained at $64^2$:
 **resolution independence holds in practice**, not just in principle.
 
@@ -107,7 +108,8 @@ Three successive changes to the training objective were required:
 | Full-field loss only | flat at $0$ — instability invisible | — | — | — |
 | \+ perturbation-only loss (Reynolds decomposition, scale-invariant) | grows *everywhere* — shape learned, rate not | — | — | — |
 | \+ multi-step (rollout) training, $K=4$, subsampled data | tracks the truth, strong positive bias | $0.77$ | $+0.168$ | 33% |
-| \+ full data, $K=6$, GPU-trained | **tracks the truth closely** | $\mathbf{0.92}$ | $+0.089$ | **73%** |
+| \+ full data, $K=6$, GPU-trained | tracks the truth closely | $0.92$ | $+0.089$ | 73% |
+| \+ longer rollout, $K=8$ | **near-quantitative agreement** | $\mathbf{0.92}$ | $\mathbf{+0.034}$ | **97%** |
 
 The two failure modes are worth seeing, because they are the evidence for the
 diagnosis above:
@@ -128,18 +130,20 @@ and the perturbation seed — not merely the trend with $M_A$. A linear fit thro
 predictions crosses zero at
 
 $$
-M_A^{\text{FNO}} \approx 2.1,
+M_A^{\text{FNO}} \approx 2.3,
 $$
 
-against $\approx 2.5$ measured from the solver itself and $2.0$ from vortex-sheet theory.
+against $\approx 2.6$ obtained by the same fit through the solver's own values, and
+$2.0$ from vortex-sheet theory.
 
 **Honest assessment.** This is a genuine recovery of the magnetic stabilization
-threshold from data that excluded it: correlation $0.92$, and the operator now assigns
-the correct sign (growing vs decaying) to 73% of held-out runs, up from 33%. A residual
-positive bias ($+0.089$) remains — stable runs are still under-damped — which shifts the
-predicted crossing to somewhat lower $M_A$ than the solver's own. The validation loss was
-still falling when training stopped, so this is a floor on achievable accuracy, not a
-ceiling.
+threshold from data that excluded it. The operator reproduces the true curve almost
+point by point below $M_A \approx 2$ (mean absolute error $0.044$ on $\gamma$) and gets
+the stability verdict right for **29 of 30** held-out runs. A small positive bias
+($+0.034$, down from $+0.168$ before multi-step training) survives in the marginal
+region, which places the predicted crossing slightly below the solver's own. Extending
+the rollout horizon from $K=6$ to $K=8$ is what removed most of the bias, so a longer
+horizon — and full-resolution training — remain the obvious next levers.
 
 ---
 
@@ -153,15 +157,17 @@ ceiling.
 - Two genuine debugging results found by rigorous checking rather than assumed away: a
   time-step instability that silently corrupted 4% of the dataset, and an
   under-resolved shear layer.
-- A negative-leaning result reported honestly and diagnosed mechanistically, instead of a
-  cherry-picked success.
+- A result obtained by diagnosis rather than by tuning: the first two training objectives
+  failed in *opposite* ways, and each fix followed from understanding why.
+- Limitations quantified and reported (the residual bias) rather than omitted.
 
 ## Limitations and future work
 
-- **Residual positive bias** ($+0.089$) in the predicted growth rate: stable runs are
-  under-damped, shifting the predicted threshold below the solver's own. Training had not
-  converged when it stopped, so more epochs, full-resolution ($128^2$) training, larger
-  capacity and longer rollout horizons are all untried headroom.
+- **Residual positive bias** ($+0.034$) in the predicted growth rate, concentrated in the
+  marginal region above $M_A \approx 2$, which places the predicted threshold slightly
+  below the solver's own. Each increase of the training rollout horizon reduced it
+  ($K=4 \to 6 \to 8$ gave bias $0.168 \to 0.089 \to 0.034$), so a longer horizon,
+  full-resolution ($128^2$) training and larger capacity are untried headroom.
 - **High-wavenumber noise**: the operator adds spurious energy at small scales that the
   solver dissipates (see `notebooks/05_energy_spectrum.png`).
 - Ground-truth growth rates inside the marginal band are themselves noisy over the
