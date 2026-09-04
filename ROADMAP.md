@@ -44,14 +44,15 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 
 ### Phase 0 — Setup
 - Repo `mhd-fno`, environment, folder structure, plotting.
-- **ML stack: PyTorch** (+ the `neuraloperator` library as an FNO reference).
+- **ML stack: PyTorch**. The FNO is implemented from scratch (`models/fno.py`);
+  the `neuraloperator` library is installed as a reference but not used.
 - **Solver: custom pseudo-spectral in PyTorch** ($\omega$–$\psi$–$A$ vorticity/flux
-  formulation), with Dedalus as a cross-check on a couple of runs.
-- [ ] Repo structure defined
-- [ ] Reproducible environment (requirements / env file)
+  formulation). Validation: analytic linear theory + resolution convergence.
+- [x] Repo structure defined
+- [x] Reproducible environment (requirements / env file)
 
 ### Phase 1 — Data generation (ground truth)
-- 2D incompressible **MHD solver**: custom pseudo-spectral (PyTorch), Dedalus cross-check.
+- 2D incompressible **MHD solver**: custom pseudo-spectral (PyTorch).
 - KH setup: shear layer, periodic box, in-plane field $B_0$.
 - **Parameter sweep** (starting configuration, revisited after first results):
 
@@ -79,26 +80,39 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 > resistivity, field slips) stay unstable below the ideal $M_A\approx2$ — which is why
 > the FNO is conditioned on both $M_A$ and $\mathrm{Re}$.
 
-### Phase 2 — Model
-- FNO mapping $\text{field}(t) \to \text{field}(t+\Delta t)$.
-- Autoregressive rollout for long horizons; conditioning on parameters ($B_0$, Re).
-- Loss: field MSE + (optional) spectral / physics-aware terms
-  (energy spectrum, $\nabla\cdot\mathbf{B} = 0$).
-- [ ] Single-regime baseline
-- [ ] Stable autoregressive rollout
-- [ ] Parametric conditioning
+### Phase 2 — Model ✅
+- FNO mapping $\text{field}(t) \to \text{field}(t+\Delta t)$, conditioned on
+  $(M_A, \mathrm{Re})$, with a residual (increment) output; autoregressive rollout.
+- [x] Single-regime baseline
+- [x] Stable autoregressive rollout
+- [x] Parametric conditioning
 
-### Phase 3 — Evaluation (physicist's checklist)
-- **Instability growth rate** vs linear theory (early time).
-- **Energy spectra** and vortex structure.
-- **Conservation** diagnostics (energy, $\nabla\cdot\mathbf{B} = 0$).
-- **Speedup** vs the solver (wall-clock).
-- **Generalization**: unseen $B_0$ → **magnetic stabilization threshold**;
-  unseen resolution (FNO resolution-invariance).
-- [ ] Full diagnostics implemented
-- [ ] Stability diagram reconstructed from the FNO
+> **Outcome.** Excellent *field* surrogate: one-step relative $L^2 \approx 0.3\%$,
+> 80-step rollout error $< 2.5\%$, and resolution independence confirmed (trained at
+> $64^2$, rolled out at $128^2$). **But** with a full-field loss the predicted $E_y$ was
+> flat: the growing perturbation is far smaller than the model's field error, so the
+> loss had no incentive to capture it. The instability was invisible.
 
-### Phase 4 — Extensions (after KH works)
+### Phase 3 — Evaluation + perturbation-focused training ✅
+- Diagnostics: growth rate vs theory, energy spectra, rollout error, threshold recovery.
+- [x] Full diagnostics implemented (`evaluation/`, `scripts/evaluate.py`)
+- [x] Stability diagram reconstructed from the FNO (with the caveat below)
+
+> **Outcome (3a).** Adding a scale-invariant relative-$L^2$ loss on the *fluctuation*
+> (Reynolds decomposition: field minus its $x$-mean base flow) made the perturbation
+> visible to training — but the model then amplified it *everywhere*: shape learned,
+> growth rate not.
+>
+> **Outcome (3b).** Multi-step (rollout) training, which supervises $K$ autoregressive
+> steps per sample, taught the rate. The operator now correlates with the true growth
+> rate at $r = 0.77$ inside the held-out band ($r = 0.84$ overall) and matches strongly
+> unstable runs ($\gamma_\text{FNO} = 0.15$–$0.21$ vs $\gamma_\text{true} = 0.14$–$0.24$).
+> A **residual positive bias** remains: stable runs are under-damped, so the threshold is
+> not a clean zero crossing. This is a calibration limitation, not a failure to learn.
+
+### Phase 4 — Reducing the bias / extensions
+- [ ] Full-data, longer-rollout training on GPU (Apple MPS / CUDA) to reduce the bias
+- [ ] Full-resolution ($128^2$) and larger-capacity operator
 - **Kink / current-driven** → bridges to fusion / Tokamak.
 - **Magnetorotational (MRI)** → accretion disks (harder: shearing box).
 
@@ -116,15 +130,16 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 - [x] ML framework → **PyTorch**
 - [x] Training strategy → **joint training + checkpointing**; true continual learning
       deferred to Phase 4 (new instabilities)
-- [x] Data solver → **custom pseudo-spectral in PyTorch** ($\omega$–$\psi$–$A$),
-      Dedalus as cross-check
+- [x] Data solver → **custom pseudo-spectral in PyTorch** ($\omega$–$\psi$–$A$).
+      *Dedalus cross-check was planned but not performed*; the solver was instead
+      validated against analytic linear theory and by resolution convergence.
 - [x] Field representation → $(\omega, A)$ (2 channels; primitives reconstructed
       for diagnostics)
 - [x] Dataset sweep → $M_A\in[0.5,6]$ (test hole $[1.5,2.5]$), $\mathrm{Re}\in[500,5000]$,
       $\mathrm{Pm}=1$, $128^2$, ~250 runs (LHS)
 
 ## Stack
-- **Solver**: custom pseudo-spectral in PyTorch ($\omega$–$\psi$–$A$); Dedalus cross-check
-- **ML**: PyTorch (+ `neuraloperator`)
+- **Solver**: custom pseudo-spectral in PyTorch ($\omega$–$\psi$–$A$)
+- **ML**: PyTorch (FNO implemented from scratch)
 - **Utilities**: NumPy, Matplotlib
 - **Optional cross-check**: PDEBench MHD data
