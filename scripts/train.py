@@ -24,6 +24,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
+import yaml
 from torch.utils.data import DataLoader
 
 from mhd_fno.data.dataset import MHDTrajectoryDataset
@@ -58,7 +59,7 @@ def main() -> None:
     args = p.parse_args()
 
     with open(args.config) as f:
-        cfg = json.load(f) if args.config.endswith(".json") else __import__("yaml").safe_load(f)
+        cfg = json.load(f) if args.config.endswith(".json") else yaml.safe_load(f)
     data_dir = args.data or cfg["dataset"]["out_dir"]
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -102,7 +103,8 @@ def main() -> None:
     ax.plot(trainer.history["train"], label="train")
     ax.plot(trainer.history["val"], label="val")
     ax.set(xlabel="epoch", ylabel="relative L2 loss", title="FNO training")
-    ax.set_yscale("log"); ax.legend()
+    ax.set_yscale("log")
+    ax.legend()
     fig.tight_layout()
     fig.savefig(out_dir / "loss_curve.png", dpi=110)
     print(f"best val loss: {trainer.best_val:.4f}  ->  {out_dir/'fno_best.pt'}")

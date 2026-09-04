@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import math
 
 import matplotlib
 
@@ -22,10 +23,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
 
-from mhd_fno.solver.spectral import SpectralGrid
+from mhd_fno.evaluation.growth import M_A_CRITICAL, growth_rate, michalke_max_growth
 from mhd_fno.solver.initial import kelvin_helmholtz_state
 from mhd_fno.solver.mhd2d import MHD2DSolver, transport_coeffs
-from mhd_fno.evaluation.growth import growth_rate, michalke_max_growth, M_A_CRITICAL
+from mhd_fno.solver.spectral import SpectralGrid
 
 
 def hydro_check(n: int, delta: float, Re: float):
@@ -88,7 +89,7 @@ def main() -> None:
     ax[1].axhline(0, color="k", lw=0.8)
     ax[1].axvline(M_A_CRITICAL, color="gray", ls="--", label="theory M_A=2")
     ax[1].plot(M_A, gammas, "o-")
-    if M_A_thresh == M_A_thresh:  # not nan
+    if not math.isnan(M_A_thresh):
         ax[1].axvline(M_A_thresh, color="C3", ls=":", label=f"measured {M_A_thresh:.2f}")
     ax[1].set(xlabel="M_A", ylabel="growth rate gamma", title="Magnetic stabilization threshold")
     ax[1].legend()

@@ -4,15 +4,53 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mhd-fno"
-version = "0.0.1"
+version = "0.1.0"
 description = "Fourier Neural Operator surrogate for 2D incompressible MHD instabilities (Kelvin-Helmholtz)."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Lorenzo Monti", email = "monti.lorenzo00@gmail.com" }]
-license = { text = "MIT" }
+license = { file = "LICENSE" }
+keywords = ["neural-operator", "fourier-neural-operator", "magnetohydrodynamics",
+            "kelvin-helmholtz", "scientific-machine-learning", "pseudo-spectral"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "torch>=2.2",
+    "numpy>=1.26,<2.0",   # pinned: torch 2.2 wheels are built against NumPy 1.x
+    "scipy>=1.11",
+    "h5py>=3.10",
+    "einops>=0.7",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.urls]
+Repository = "https://github.com/LoreMonti/MHD_Neural_Operator"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    "E501",    # line length is handled by the formatter, not enforced hard
+    "B008",    # function call in argument default (argparse patterns)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E402"]   # matplotlib.use("Agg") must precede the pyplot import

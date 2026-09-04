@@ -4,8 +4,8 @@ import math
 
 import torch
 
+from mhd_fno.solver.initial import B0_from_M_A, kelvin_helmholtz_state
 from mhd_fno.solver.spectral import SpectralGrid
-from mhd_fno.solver.initial import kelvin_helmholtz_state, B0_from_M_A
 
 
 def test_B0_from_M_A():

@@ -13,8 +13,8 @@ import argparse
 
 import yaml
 
-from mhd_fno.data.sweep import generate_sweep
 from mhd_fno.data.generate import generate_dataset
+from mhd_fno.data.sweep import generate_sweep
 
 
 def main() -> None:

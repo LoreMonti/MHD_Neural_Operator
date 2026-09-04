@@ -10,11 +10,13 @@ Each item is:
     params : (2,)       = [M_A, Re]      (for conditioning the operator)
 
 HDF5 files are opened lazily and cached per Dataset instance. For multi-worker loading
-use a fresh Dataset per worker (or num_workers=0); handles are not shared across procs.
+use a fresh Dataset per worker (or num_workers=0)
+handles are not shared across procs.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 
@@ -36,7 +38,8 @@ class MHDTrajectoryDataset(Dataset):
         include_runs : if given, keep only runs whose run_id is in this set (used to
             carve a validation set out of unseen training runs).
         rollout_steps : if >1, each item is a window of (rollout_steps + 1) consecutive
-            frames for multi-step training; the item returns {"window", "params"}
+            frames for multi-step training
+            the item returns {"window", "params"}
             instead of {"input", "target", "params"}.
         """
         self.rollout_steps = rollout_steps
@@ -94,7 +97,6 @@ class MHDTrajectoryDataset(Dataset):
 
     def __del__(self):
         for h in getattr(self, "_handles", {}).values():
-            try:
+            # A destructor must never raise, so suppress any close error.
+            with contextlib.suppress(Exception):
                 h.close()
-            except Exception:
-                pass

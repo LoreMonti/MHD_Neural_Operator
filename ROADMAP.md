@@ -44,8 +44,8 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 
 ### Phase 0 — Setup
 - Repo `mhd-fno`, environment, folder structure, plotting.
-- **ML stack: PyTorch**. The FNO is implemented from scratch (`models/fno.py`);
-  the `neuraloperator` library is installed as a reference but not used.
+- **ML stack: PyTorch**. The FNO is implemented from scratch (`models/fno.py`),
+  with no external neural-operator library.
 - **Solver: custom pseudo-spectral in PyTorch** ($\omega$–$\psi$–$A$ vorticity/flux
   formulation). Validation: analytic linear theory + resolution convergence.
 - [x] Repo structure defined

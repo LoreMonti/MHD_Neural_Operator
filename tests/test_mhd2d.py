@@ -6,9 +6,9 @@ growth-rate-vs-linear-theory validation lives in the evaluation phase.
 
 import torch
 
-from mhd_fno.solver.spectral import SpectralGrid
 from mhd_fno.solver.initial import kelvin_helmholtz_state
 from mhd_fno.solver.mhd2d import MHD2DSolver, transport_coeffs
+from mhd_fno.solver.spectral import SpectralGrid
 
 
 def _run(M_A, n=64, t_end=8.0, seed=0):

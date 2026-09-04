@@ -27,11 +27,10 @@ limit (see compute_dt).
 
 from __future__ import annotations
 
-import math
 import torch
 
-from .spectral import SpectralGrid
 from .initial import KHState
+from .spectral import SpectralGrid
 
 
 def transport_coeffs(Re: float, delta_u: float, length: float, Pm: float = 1.0) -> tuple[float, float]:

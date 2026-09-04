@@ -47,7 +47,7 @@ class Normalizer:
         Path(path).write_text(json.dumps(obj))
 
     @classmethod
-    def load(cls, path: str | Path) -> "Normalizer":
+    def load(cls, path: str | Path) -> Normalizer:
         obj = json.loads(Path(path).read_text())
         return cls(**{k: torch.tensor(v) for k, v in obj.items()})
 
@@ -64,13 +64,16 @@ def compute_stats(root: str | Path, split: str = "train", max_files: int = 60,
 
     # Welford-free: accumulate sums over sampled frames (cheap and sufficient).
     n = 0
-    s1 = np.zeros(2); s2 = np.zeros(2)
+    s1 = np.zeros(2)
+    s2 = np.zeros(2)
     params = []
     for e in files:
         with h5py.File(root / e["file"], "r") as f:
-            omega = f["omega"][:]; a = f["a"][:]         # (T, H, W)
+            omega = f["omega"][:]
+            a = f["a"][:]         # (T, H, W)
             for arr, ch in ((omega, 0), (a, 1)):
-                s1[ch] += arr.sum(); s2[ch] += (arr.astype(np.float64) ** 2).sum()
+                s1[ch] += arr.sum()
+                s2[ch] += (arr.astype(np.float64) ** 2).sum()
             n += omega.size
             params.append([float(f.attrs["M_A"]), float(f.attrs["Re"])])
     mean = s1 / n

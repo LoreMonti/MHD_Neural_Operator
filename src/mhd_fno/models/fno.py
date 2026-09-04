@@ -19,8 +19,8 @@ rollout stay stable.
 from __future__ import annotations
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class SpectralConv2d(nn.Module):
@@ -100,7 +100,7 @@ class FNO2d(nn.Module):
         x = torch.cat([fields, p], dim=1)
 
         x = self.lift(x)
-        for spec, pw in zip(self.spectral, self.pointwise):
+        for spec, pw in zip(self.spectral, self.pointwise, strict=True):
             x = F.gelu(spec(x) + pw(x))
 
         x = F.gelu(self.project1(x))

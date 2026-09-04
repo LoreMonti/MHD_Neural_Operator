@@ -2,7 +2,7 @@
 
 import torch
 
-from mhd_fno.training.losses import relative_l2, fluctuation, fluctuation_relative_l2
+from mhd_fno.training.losses import fluctuation, fluctuation_relative_l2, relative_l2
 
 
 def test_relative_l2_zero_and_scale_invariant():

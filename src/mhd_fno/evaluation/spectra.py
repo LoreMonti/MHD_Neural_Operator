@@ -22,7 +22,8 @@ def kinetic_energy_spectrum(omega: torch.Tensor) -> tuple[np.ndarray, np.ndarray
     grid = SpectralGrid(n=n, dtype=torch.float64)
     psi_hat = grid.psi_hat_from_omega_hat(grid.fft(omega.double()))
     v_x, v_y = grid.velocity_from_psi_hat(psi_hat)
-    vxh = grid.fft(v_x); vyh = grid.fft(v_y)
+    vxh = grid.fft(v_x)
+    vyh = grid.fft(v_y)
     e = 0.5 * (vxh.abs() ** 2 + vyh.abs() ** 2) / (n ** 4)   # spectral energy density
 
     kmag = torch.sqrt(grid.kx ** 2 + grid.ky ** 2).numpy()

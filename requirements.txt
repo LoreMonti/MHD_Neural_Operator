@@ -1,6 +1,5 @@
-# Core ML
+# Core ML (the FNO is implemented from scratch - no operator library needed)
 torch>=2.2
-neuraloperator>=0.3.0
 
 # Numerics & data
 numpy>=1.26,<2.0     # torch 2.2 is built against NumPy 1.x; NumPy 2.x degrades FFT precision

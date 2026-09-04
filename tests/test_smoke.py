@@ -12,9 +12,9 @@ def test_version():
 
 
 def test_subpackages_import():
-    import mhd_fno.solver  # noqa: F401
-    import mhd_fno.data  # noqa: F401
-    import mhd_fno.models  # noqa: F401
-    import mhd_fno.training  # noqa: F401
-    import mhd_fno.evaluation  # noqa: F401
+    import mhd_fno.data
+    import mhd_fno.evaluation
+    import mhd_fno.models
+    import mhd_fno.solver
+    import mhd_fno.training
     import mhd_fno.utils  # noqa: F401

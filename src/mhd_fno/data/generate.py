@@ -24,9 +24,9 @@ import h5py
 import torch
 from tqdm import tqdm
 
-from ..solver.spectral import SpectralGrid
 from ..solver.initial import kelvin_helmholtz_state
 from ..solver.mhd2d import MHD2DSolver, transport_coeffs
+from ..solver.spectral import SpectralGrid
 from .sweep import RunSpec
 
 

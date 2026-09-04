@@ -16,7 +16,7 @@ Each run is described by a RunSpec (parameters + a split label + a seed).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 
 from scipy.stats import qmc
 

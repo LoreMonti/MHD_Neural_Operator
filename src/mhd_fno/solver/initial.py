@@ -32,9 +32,9 @@ v_A = B0 / sqrt(mu0 * rho) = B0, and M_A = delta_u / v_A gives B0 = delta_u / M_
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
-import math
 import torch
 
 from .spectral import SpectralGrid
@@ -97,7 +97,7 @@ def kelvin_helmholtz_state(
     rho, mu0 : float
         Density and vacuum permeability (normalized units by default).
     """
-    n, length = grid.n, grid.length
+    length = grid.length
     if shear_thickness is None:
         shear_thickness = 0.05 * length
     xx, yy = _coordinates(grid)

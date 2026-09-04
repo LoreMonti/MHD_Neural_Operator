@@ -23,12 +23,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
+import yaml
 
-from mhd_fno.models.fno import FNO2d
 from mhd_fno.data.normalization import Normalizer
-from mhd_fno.evaluation.rollout import load_run, rollout, rollout_rel_l2, transverse_energy_series
+from mhd_fno.evaluation.growth import M_A_CRITICAL, growth_rate
+from mhd_fno.evaluation.rollout import (
+    load_run,
+    rollout,
+    rollout_rel_l2,
+    transverse_energy_series,
+)
 from mhd_fno.evaluation.spectra import kinetic_energy_spectrum
-from mhd_fno.evaluation.growth import growth_rate, M_A_CRITICAL
+from mhd_fno.models.fno import FNO2d
 
 
 def _resize_traj(traj, n):
@@ -49,9 +55,11 @@ def main() -> None:
     p.add_argument("--scan-res", type=int, default=64, help="Resolution for the threshold scan.")
     args = p.parse_args()
 
-    cfg = __import__("yaml").safe_load(open(args.config))
+    with open(args.config) as f:
+        cfg = yaml.safe_load(f)
     data_dir = Path(args.data or cfg["dataset"]["out_dir"])
-    out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
 
     norm = Normalizer.load(args.normalizer)
     model = FNO2d(modes=args.modes, width=args.width, n_layers=args.n_layers)
@@ -74,7 +82,10 @@ def main() -> None:
         err = rollout_rel_l2(pred, true)
         ax.plot(run["times"], err, label=f"M_A={run['M_A']:.2f}")
     ax.set(xlabel="t", ylabel="relative L2 error", title=f"Autoregressive rollout error ({args.eval_res}^2)")
-    ax.legend(); fig.tight_layout(); fig.savefig(out / "rollout_error.png", dpi=110); plt.close(fig)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out / "rollout_error.png", dpi=110)
+    plt.close(fig)
 
     # === Metric B & C: snapshot + spectrum for one unstable run ===
     e = max(test, key=lambda e: e["M_A"])
@@ -85,19 +96,28 @@ def main() -> None:
     true = _resize_traj(torch.stack([run["omega"], run["a"]], dim=1), args.eval_res)
     ti = int(0.75 * n_steps)
     fig, axs = plt.subplots(1, 3, figsize=(13, 4))
-    for a_, (f_, t_) in zip(axs, [(true[ti, 0], "true omega"), (pred[ti, 0], "FNO omega"),
-                                  (pred[ti, 0] - true[ti, 0], "error")]):
-        im = a_.imshow(f_.numpy(), origin="lower", cmap="RdBu_r"); a_.set_title(t_); a_.axis("off")
+    panels = [(true[ti, 0], "true omega"), (pred[ti, 0], "FNO omega"),
+              (pred[ti, 0] - true[ti, 0], "error")]
+    for a_, (f_, t_) in zip(axs, panels, strict=True):
+        im = a_.imshow(f_.numpy(), origin="lower", cmap="RdBu_r")
+        a_.set_title(t_)
+        a_.axis("off")
         plt.colorbar(im, ax=a_, shrink=0.7)
     fig.suptitle(f"Vorticity at t={run['times'][ti]:.1f}  (M_A={run['M_A']:.2f})")
-    fig.tight_layout(); fig.savefig(out / "rollout_snapshot.png", dpi=90); plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(out / "rollout_snapshot.png", dpi=90)
+    plt.close(fig)
 
     k_t, E_t = kinetic_energy_spectrum(true[ti, 0])
     k_p, E_p = kinetic_energy_spectrum(pred[ti, 0])
     fig, ax = plt.subplots(figsize=(7, 4.5))
-    ax.loglog(k_t, E_t, label="true"); ax.loglog(k_p, E_p, "--", label="FNO")
+    ax.loglog(k_t, E_t, label="true")
+    ax.loglog(k_p, E_p, "--", label="FNO")
     ax.set(xlabel="k", ylabel="E(k)", title=f"Kinetic energy spectrum at t={run['times'][ti]:.1f}")
-    ax.legend(); fig.tight_layout(); fig.savefig(out / "spectrum.png", dpi=110); plt.close(fig)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out / "spectrum.png", dpi=110)
+    plt.close(fig)
 
     # === Metric D: threshold recovery on the held-out hole ===
     print("threshold scan over test runs (this is the key test)...")
@@ -123,7 +143,10 @@ def main() -> None:
     ax.plot(rows[:, 0], rows[:, 2], "s--", label="FNO")
     ax.set(xlabel="M_A", ylabel="growth rate gamma",
            title="Magnetic stabilization threshold — held-out test hole")
-    ax.legend(); fig.tight_layout(); fig.savefig(out / "threshold.png", dpi=110); plt.close(fig)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out / "threshold.png", dpi=110)
+    plt.close(fig)
     print(f"saved figures to {out}/")
 
 

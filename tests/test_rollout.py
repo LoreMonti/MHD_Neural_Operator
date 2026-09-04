@@ -18,7 +18,8 @@ def _identity_normalizer():
 def test_rollout_shape():
     model = FNO2d(modes=6, width=8, n_layers=2)
     norm = _identity_normalizer()
-    omega0 = torch.randn(32, 32); a0 = torch.randn(32, 32)
+    omega0 = torch.randn(32, 32)
+    a0 = torch.randn(32, 32)
     traj = rollout(model, norm, omega0, a0, torch.tensor([3.0, 1000.0]), n_steps=5)
     assert traj.shape == (6, 2, 32, 32)
 

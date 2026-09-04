@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: "MHD Neural Operator: a Fourier Neural Operator surrogate for the magnetized Kelvin-Helmholtz instability"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Monti
+    given-names: Lorenzo
+    email: monti.lorenzo00@gmail.com
+repository-code: "https://github.com/LoreMonti/MHD_Neural_Operator"
+abstract: >-
+  A Fourier Neural Operator trained to emulate the nonlinear evolution of a
+  magnetized Kelvin-Helmholtz instability in 2D incompressible
+  magnetohydrodynamics, together with the from-scratch pseudo-spectral solver
+  that generates its ground truth. The training set deliberately excludes a band
+  of Alfvenic Mach number around the magnetic stabilization threshold, so that
+  recovering the threshold there tests physical generalization rather than
+  interpolation.
+keywords:
+  - neural operator
+  - Fourier neural operator
+  - magnetohydrodynamics
+  - Kelvin-Helmholtz instability
+  - scientific machine learning
+license: MIT
+version: 0.1.0

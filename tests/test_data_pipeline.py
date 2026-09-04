@@ -1,11 +1,10 @@
 """End-to-end test of the data pipeline on a tiny, fast dataset."""
 
-import torch
 from torch.utils.data import DataLoader
 
-from mhd_fno.data.sweep import generate_sweep
-from mhd_fno.data.generate import generate_dataset
 from mhd_fno.data.dataset import MHDTrajectoryDataset
+from mhd_fno.data.generate import generate_dataset
+from mhd_fno.data.sweep import generate_sweep
 
 
 def _tiny_dataset(tmp_path):

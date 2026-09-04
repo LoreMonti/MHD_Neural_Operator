@@ -8,7 +8,6 @@ rolled out at the native 128^2 (the same normalization stats apply per pixel).
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import h5py

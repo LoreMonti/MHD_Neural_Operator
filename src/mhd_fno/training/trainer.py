@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from ..data.normalization import Normalizer
-from .losses import relative_l2, fluctuation_relative_l2
+from .losses import fluctuation_relative_l2, relative_l2
 
 
 class Trainer:

@@ -35,14 +35,14 @@ def test_gradient_matches_analytic():
 
 
 def test_laplacian_matches_analytic():
-    grid, xx, yy, f = _sample_field(64)
+    grid, _, _, f = _sample_field(64)
     lap = grid.ifft(grid.laplacian(grid.fft(f)))
     assert torch.allclose(lap, -2.0 * f, atol=1e-10)
 
 
 def test_inverse_laplacian_is_inverse():
     """inverse_laplacian(laplacian(f)) recovers f up to its (removed) mean."""
-    grid, xx, yy, f = _sample_field(64)
+    grid, _, _, f = _sample_field(64)
     f = f - f.mean()  # zero-mean so the k=0 mode carries no information
     recovered = grid.ifft(grid.inverse_laplacian(grid.laplacian(grid.fft(f))))
     assert torch.allclose(recovered, f, atol=1e-10)
@@ -50,7 +50,7 @@ def test_inverse_laplacian_is_inverse():
 
 def test_velocity_from_psi_is_divergence_free():
     """v = curl(psi z) must satisfy div(v) = dv_x/dx + dv_y/dy = 0."""
-    grid, xx, yy, psi = _sample_field(64)
+    grid, _, _, psi = _sample_field(64)
     psi_hat = grid.fft(psi)
     v_x, v_y = grid.velocity_from_psi_hat(psi_hat)
     dvx_dx = grid.ifft(grid.grad(grid.fft(v_x))[0])
