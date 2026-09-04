@@ -1,4 +1,4 @@
-# MHD Instability Neural Operator (`mhd-fno`)
+# MHD Neural Operator
 
 **A Fourier Neural Operator trained to emulate the nonlinear evolution of a magnetized
 Kelvin–Helmholtz instability — and a rigorous test of whether it learns the underlying
@@ -66,7 +66,7 @@ applied autoregressively for the full trajectory.
 
 ### 1. The solver reproduces linear theory
 
-![solver validation](notebooks/solver_validation.png)
+![solver validation](notebooks/01_solver_validation.png)
 
 Growth is cleanly exponential and **resolution-converged** ($\gamma$ unchanged from
 $128^2$ to $256^2$, fit $R^2 = 1.0000$). The measured stabilization threshold sits at
@@ -76,17 +76,17 @@ sheet.
 
 ### 2. The dataset spans the threshold
 
-![dataset overview](notebooks/dataset_overview.png)
+![dataset overview](notebooks/02_dataset_overview.png)
 
 Transverse kinetic energy $E_y$ decays below $M_A \approx 2$ and grows above it. Training
 points (blue) avoid the grey band; test points (red) fill it.
 
 ### 3. The FNO is a faithful, resolution-independent field surrogate
 
-![rollout error](notebooks/rollout_error.png)
+![rollout error](notebooks/03_rollout_error.png)
 
 Rolled out autoregressively for 80 steps, the relative $L^2$ field error stays **below
-2.5%**, with no blow-up. This rollout is at $128^2$ using weights trained at $64^2$:
+2%**, with no blow-up. This rollout is at $128^2$ using weights trained at $64^2$:
 **resolution independence holds in practice**, not just in principle.
 
 ### 4. Recovering the growth rate is much harder than recovering the field
@@ -109,11 +109,18 @@ Three successive changes to the training objective were required:
 | \+ multi-step (rollout) training, $K=4$, subsampled data | tracks the truth, strong positive bias | $0.77$ | $+0.168$ | 33% |
 | \+ full data, $K=6$, GPU-trained | **tracks the truth closely** | $\mathbf{0.92}$ | $+0.089$ | **73%** |
 
-![growth rate summary](notebooks/phase4/summary.png)
+The two failure modes are worth seeing, because they are the evidence for the
+diagnosis above:
+
+| naive field loss — instability invisible | perturbation loss only — over-amplified |
+|---|---|
+| ![naive](notebooks/06_threshold_naive_loss.png) | ![perturbation only](notebooks/07_threshold_perturbation_only.png) |
+
+![growth rate summary](notebooks/09_growth_rate_summary.png)
 
 ### 5. The threshold is recovered in the unseen band
 
-![threshold recovery](notebooks/phase4/threshold.png)
+![threshold recovery](notebooks/08_threshold_final.png)
 
 In its final form the operator **reproduces the growth-rate curve across the held-out
 band it was never trained on**, including run-to-run structure driven by $\mathrm{Re}$
@@ -156,7 +163,7 @@ ceiling.
   converged when it stopped, so more epochs, full-resolution ($128^2$) training, larger
   capacity and longer rollout horizons are all untried headroom.
 - **High-wavenumber noise**: the operator adds spurious energy at small scales that the
-  solver dissipates (see `notebooks/spectrum.png`).
+  solver dissipates (see `notebooks/05_energy_spectrum.png`).
 - Ground-truth growth rates inside the marginal band are themselves noisy over the
   simulated horizon, which limits how sharply the test can discriminate.
 - Only KH is covered; current-driven (kink) and magnetorotational instabilities are the
