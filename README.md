@@ -216,3 +216,7 @@ reconstructed from $(\omega, a)$ by a spectral Laplacian inversion for diagnosti
 Normalized units: $\mu_0 = \rho = 1$, so $v_A = B_0$ and $B_0 = \Delta u / M_A$.
 
 See [`ROADMAP.md`](ROADMAP.md) for the phase-by-phase plan and design decisions.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
