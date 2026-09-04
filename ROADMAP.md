@@ -110,9 +110,18 @@ single spectral Laplacian inversion for diagnostics / literature comparison
 > A **residual positive bias** remains: stable runs are under-damped, so the threshold is
 > not a clean zero crossing. This is a calibration limitation, not a failure to learn.
 
-### Phase 4 — Reducing the bias / extensions
-- [ ] Full-data, longer-rollout training on GPU (Apple MPS / CUDA) to reduce the bias
+### Phase 4 — Reducing the bias ✅ (partly) / extensions
+- [x] Full-data, longer-rollout training on GPU (Apple MPS) to reduce the bias
 - [ ] Full-resolution ($128^2$) and larger-capacity operator
+
+> **Outcome.** Full dataset (16875 windows), rollout $K=6$, warm-started from 3b,
+> 20 epochs on an Apple M5 GPU (~5.5x faster than CPU; `torch.fft` works on MPS).
+> Validation loss $0.0362 \to 0.0197$. In the held-out band the correlation with the
+> true growth rate rose $0.77 \to 0.92$, the bias halved ($+0.168 \to +0.089$), and the
+> fraction of runs with the correct sign went $33\% \to 73\%$. The predicted threshold
+> is $M_A \approx 2.1$ (solver $\approx 2.5$, theory $2.0$) — **the threshold is
+> recovered in a band the model never saw**. Validation loss was still falling at
+> epoch 20, so accuracy is not yet saturated.
 - **Kink / current-driven** → bridges to fusion / Tokamak.
 - **Magnetorotational (MRI)** → accretion disks (harder: shearing box).
 

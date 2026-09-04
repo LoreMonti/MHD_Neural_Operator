@@ -4,6 +4,13 @@
 Kelvin–Helmholtz instability — and a rigorous test of whether it learns the underlying
 *physics* rather than interpolating the data.**
 
+**Headline result:** trained on data that deliberately excludes the band
+$M_A \in [1.5, 2.5]$ around the magnetic stabilization threshold, the operator
+reconstructs the growth-rate curve inside that unseen band with correlation $0.92$ and
+places the threshold at $M_A \approx 2.1$ (solver: $\approx 2.5$; vortex-sheet theory:
+$2.0$). Getting there required diagnosing *why* a naive field loss makes the instability
+invisible — the central technical finding below.
+
 Everything here is built from scratch: the pseudo-spectral MHD solver that generates the
 ground truth, the dataset, the neural operator, and the physics diagnostics.
 
@@ -93,27 +100,39 @@ stability is orders of magnitude smaller. The model's field error ($\sim 0.03$) 
 than the entire signal of interest, so a field-norm loss has no incentive to capture it —
 predicted $E_y$ stayed flat even for runs whose true $E_y$ grew by $10^4$.
 
-Two successive fixes were required:
+Three successive changes to the training objective were required:
 
-| Training scheme | Behaviour of predicted $\gamma$ |
-|---|---|
-| Full-field loss only | flat at $0$ — instability invisible |
-| \+ perturbation-only loss (Reynolds decomposition, scale-invariant) | grows *everywhere* — shape learned, rate not |
-| \+ multi-step (rollout) training | tracks the truth, with a residual positive bias |
+| Training scheme | Predicted $\gamma$ | corr. with truth | bias | sign correct |
+|---|---|---|---|---|
+| Full-field loss only | flat at $0$ — instability invisible | — | — | — |
+| \+ perturbation-only loss (Reynolds decomposition, scale-invariant) | grows *everywhere* — shape learned, rate not | — | — | — |
+| \+ multi-step (rollout) training, $K=4$, subsampled data | tracks the truth, strong positive bias | $0.77$ | $+0.168$ | 33% |
+| \+ full data, $K=6$, GPU-trained | **tracks the truth closely** | $\mathbf{0.92}$ | $+0.089$ | **73%** |
 
-![growth rate summary](notebooks/phase3b/summary.png)
+![growth rate summary](notebooks/phase4/summary.png)
 
-With perturbation-focused, multi-step training the operator **correlates with the true
-growth rate at $r = 0.77$ inside the held-out band** ($r = 0.84$ over the full range) and
-matches strongly unstable runs closely ($\gamma_\text{FNO} = 0.15$–$0.21$ vs
-$\gamma_\text{true} = 0.14$–$0.24$). In the scatter plot the unstable cases lie *on* the
-diagonal; the remaining points lie **parallel to but above** it — a systematic bias, not
-noise.
+### 5. The threshold is recovered in the unseen band
 
-**Honest conclusion.** The operator demonstrably learned physics in the unseen band — the
-correlation proves it ranks the runs correctly — but a residual positive bias means it
-under-damps stable cases, so the threshold does not emerge as a clean zero crossing. The
-limitation is one of *calibration*, not of understanding.
+![threshold recovery](notebooks/phase4/threshold.png)
+
+In its final form the operator **reproduces the growth-rate curve across the held-out
+band it was never trained on**, including run-to-run structure driven by $\mathrm{Re}$
+and the perturbation seed — not merely the trend with $M_A$. A linear fit through its
+predictions crosses zero at
+
+$$
+M_A^{\text{FNO}} \approx 2.1,
+$$
+
+against $\approx 2.5$ measured from the solver itself and $2.0$ from vortex-sheet theory.
+
+**Honest assessment.** This is a genuine recovery of the magnetic stabilization
+threshold from data that excluded it: correlation $0.92$, and the operator now assigns
+the correct sign (growing vs decaying) to 73% of held-out runs, up from 33%. A residual
+positive bias ($+0.089$) remains — stable runs are still under-damped — which shifts the
+predicted crossing to somewhat lower $M_A$ than the solver's own. The validation loss was
+still falling when training stopped, so this is a floor on achievable accuracy, not a
+ceiling.
 
 ---
 
@@ -132,8 +151,10 @@ limitation is one of *calibration*, not of understanding.
 
 ## Limitations and future work
 
-- **Residual bias** in the predicted growth rate for stable runs. Longer rollout horizons,
-  full-resolution training and larger models are the natural next levers.
+- **Residual positive bias** ($+0.089$) in the predicted growth rate: stable runs are
+  under-damped, shifting the predicted threshold below the solver's own. Training had not
+  converged when it stopped, so more epochs, full-resolution ($128^2$) training, larger
+  capacity and longer rollout horizons are all untried headroom.
 - **High-wavenumber noise**: the operator adds spurious energy at small scales that the
   solver dissipates (see `notebooks/spectrum.png`).
 - Ground-truth growth rates inside the marginal band are themselves noisy over the
